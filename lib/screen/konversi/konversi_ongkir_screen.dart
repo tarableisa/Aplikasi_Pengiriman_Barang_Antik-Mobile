@@ -16,14 +16,23 @@ class _KonversiScreenState extends State<KonversiScreen> {
   final _beratController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  // Kurs mata uang yang realistis (1 unit mata uang = berapa IDR)
   final _kurs = {
-    'USD': {'rate': 0.77, 'symbol': '\$', 'flag': '🇺🇸'},
-    'EUR': {'rate': 0.87, 'symbol': '€', 'flag': '🇪🇺'},
-    'JPY': {'rate': 0.134, 'symbol': '¥', 'flag': '🇯🇵'},
     'IDR': {'rate': 1.0, 'symbol': 'Rp', 'flag': '🇮🇩'},
+    'USD': {
+      'rate': 15500.0,
+      'symbol': '\$',
+      'flag': '🇺🇸'
+    }, // 1 USD = 15,500 IDR
+    'EUR': {
+      'rate': 16800.0,
+      'symbol': '€',
+      'flag': '🇪🇺'
+    }, // 1 EUR = 16,800 IDR
+    'JPY': {'rate': 108.0, 'symbol': '¥', 'flag': '🇯🇵'}, // 1 JPY = 108 IDR
   };
 
-  String _selectedCurrency = 'USD';
+  String _selectedCurrency = 'IDR';
   double? _convertedValue;
   List<Map<String, dynamic>> _histori = [];
 
@@ -81,10 +90,12 @@ class _KonversiScreenState extends State<KonversiScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final berat = double.parse(_beratController.text);
-    final hargaPerKgIDR = 20000;
-    final totalIDR = berat * hargaPerKgIDR;
+    final hargaPerKgIDR = 20000.0; // Harga per kg dalam IDR
+    final totalIDR = berat * hargaPerKgIDR; // Total dalam IDR
+
+    // Konversi dari IDR ke mata uang yang dipilih
     final rate = _kurs[_selectedCurrency]?['rate'] as double? ?? 1.0;
-    final hasil = totalIDR * rate;
+    final hasil = totalIDR / rate; // Bagi dengan rate untuk konversi dari IDR
 
     setState(() {
       _convertedValue = hasil;
@@ -111,7 +122,14 @@ class _KonversiScreenState extends State<KonversiScreen> {
     final currency = _kurs[_selectedCurrency];
     if (currency == null) return const SizedBox.shrink();
 
-    final formatter = NumberFormat('#,##0.00');
+    // Format angka sesuai mata uang
+    String formattedValue;
+    if (_selectedCurrency == 'JPY') {
+      // JPY tidak menggunakan desimal
+      formattedValue = NumberFormat('#,##0').format(_convertedValue);
+    } else {
+      formattedValue = NumberFormat('#,##0.00').format(_convertedValue);
+    }
 
     return Container(
       width: double.infinity,
@@ -154,7 +172,7 @@ class _KonversiScreenState extends State<KonversiScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${currency['symbol'] as String? ?? ''} ${formatter.format(_convertedValue)}',
+            '${currency['symbol'] as String? ?? ''} $formattedValue',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -166,6 +184,15 @@ class _KonversiScreenState extends State<KonversiScreen> {
             style: TextStyle(
               color: Colors.white.withOpacity(0.8),
               fontSize: 14,
+            ),
+          ),
+          // Tambahan info konversi
+          const SizedBox(height: 8),
+          Text(
+            'Berat: ${_beratController.text} kg × Rp 20,000',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 12,
             ),
           ),
         ],
@@ -192,6 +219,35 @@ class _KonversiScreenState extends State<KonversiScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Info Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade100),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      color: Colors.blue.shade600, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Harga dasar: Rp 20,000 per kg',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             // Input Section
             Container(
               padding: const EdgeInsets.all(20),
@@ -251,6 +307,13 @@ class _KonversiScreenState extends State<KonversiScreen> {
                         return null;
                       },
                       onEditingComplete: _konversi,
+                      onChanged: (value) {
+                        // Auto calculate saat user mengetik
+                        if (value.isNotEmpty &&
+                            double.tryParse(value) != null) {
+                          _konversi();
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -390,6 +453,16 @@ class _KonversiScreenState extends State<KonversiScreen> {
                       final symbol = currencyData?['symbol'] as String? ?? '';
                       final flag = currencyData?['flag'] as String? ?? '🌍';
 
+                      // Format berdasarkan mata uang
+                      String formattedResult;
+                      if (item['mataUang'] == 'JPY') {
+                        formattedResult =
+                            NumberFormat('#,##0').format(item['hasil']);
+                      } else {
+                        formattedResult =
+                            NumberFormat('#,##0.00').format(item['hasil']);
+                      }
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(12),
@@ -418,7 +491,7 @@ class _KonversiScreenState extends State<KonversiScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '${item['berat']} kg → $symbol ${NumberFormat('#,##0.00').format(item['hasil'])}',
+                                    '${item['berat']} kg → $symbol $formattedResult',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w500,
                                       fontSize: 13,
