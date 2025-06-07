@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:sensors_plus/sensors_plus.dart'; // Ganti import shake dengan sensors_plus
+import 'dart:async';
+import 'dart:math';
 import '../services/api_service.dart';
 import '../models/form_model.dart';
 import 'auth/login_screen.dart';
 import 'form/form_screen.dart';
-import 'form/form_list_screen.dart'; // Import FormListScreen
+import 'form/form_list_screen.dart';
 import 'konversi/konversi_ongkir_screen.dart';
 import 'konversi/konversi_waktu_screen.dart';
 import 'profil/profil_screen.dart';
@@ -19,6 +22,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   int _currentIndex = 0;
+
+  // Ganti ShakeDetector dengan StreamSubscription untuk accelerometer
+  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  double _shakeThreshold = 12.0; // Threshold untuk mendeteksi shake
+  DateTime? _lastShakeTime; // Untuk cooldown
 
   final List<Widget> _screens = [
     Container(), // Tab Home akan dibangun manual
@@ -37,13 +45,127 @@ class _HomeScreenState extends State<HomeScreen>
     // Tambahkan observer untuk lifecycle
     WidgetsBinding.instance.addObserver(this);
     fetchForms();
+
+    // Inisialisasi accelerometer listener
+    _initAccelerometer();
   }
 
   @override
   void dispose() {
     // Hapus observer saat dispose
     WidgetsBinding.instance.removeObserver(this);
+
+    // Cancel accelerometer subscription
+    _accelerometerSubscription?.cancel();
+
     super.dispose();
+  }
+
+  // Method untuk inisialisasi accelerometer
+  void _initAccelerometer() {
+    _accelerometerSubscription =
+        accelerometerEvents.listen((AccelerometerEvent event) {
+      // Hanya aktif shake logout di home tab
+      if (_currentIndex == 0) {
+        _detectShake(event);
+      }
+    });
+  }
+
+  // Method untuk mendeteksi shake gesture
+  void _detectShake(AccelerometerEvent event) {
+    // Hitung total acceleration dari ketiga axis
+    double acceleration =
+        sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+
+    // Jika acceleration melebihi threshold
+    if (acceleration > _shakeThreshold) {
+      DateTime now = DateTime.now();
+
+      // Cooldown 2 detik untuk mencegah multiple trigger
+      if (_lastShakeTime == null ||
+          now.difference(_lastShakeTime!) > Duration(seconds: 2)) {
+        _lastShakeTime = now;
+        print('Shake detected! Acceleration: $acceleration'); // Debug
+        _showLogoutDialog();
+      }
+    }
+  }
+
+  // Method untuk menampilkan dialog logout
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.logout,
+                color: Colors.red,
+                size: 24,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Konfirmasi Logout',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.vibration,
+                size: 48,
+                color: Colors.orange,
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Anda melakukan shake gesture.\nYakin ingin logout?',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Batal',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _logout();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Ya, Logout',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // Method ini dipanggil ketika app lifecycle berubah
@@ -109,12 +231,33 @@ class _HomeScreenState extends State<HomeScreen>
       appBar: AppBar(
         backgroundColor: const Color(0xFF001F3F), // Navy
         elevation: 0,
-        title: Text(
-          tabTitles[_currentIndex],
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          children: [
+            Text(
+              tabTitles[_currentIndex],
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            // Tambahkan indikator shake di home tab
+            if (_currentIndex == 0) ...[
+              SizedBox(width: 8),
+              Icon(
+                Icons.vibration,
+                color: Colors.white70,
+                size: 16,
+              ),
+              SizedBox(width: 4),
+              Text(
+                'Shake to logout',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ],
         ),
         leading: _currentIndex == 0
             ? Builder(
@@ -272,6 +415,20 @@ class _HomeScreenState extends State<HomeScreen>
             onTap: () {
               Navigator.pop(context); // Tutup drawer
               _showFormListDialog();
+            },
+          ),
+          const Divider(),
+          // Tambahkan info shake gesture
+          ListTile(
+            leading: const Icon(Icons.vibration, color: Colors.orange),
+            title: const Text(
+              'Shake Logout',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text('Goyang HP untuk logout cepat'),
+            onTap: () {
+              Navigator.pop(context);
+              _showLogoutDialog();
             },
           ),
         ],

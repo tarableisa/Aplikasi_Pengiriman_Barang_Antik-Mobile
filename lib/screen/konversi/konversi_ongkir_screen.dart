@@ -17,9 +17,9 @@ class _KonversiScreenState extends State<KonversiScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _kurs = {
-    'USD': {'rate': 0.000064, 'symbol': '\$', 'flag': '🇺🇸'},
-    'EUR': {'rate': 0.000059, 'symbol': '€', 'flag': '🇪🇺'},
-    'JPY': {'rate': 0.0099, 'symbol': '¥', 'flag': '🇯🇵'},
+    'USD': {'rate': 0.77, 'symbol': '\$', 'flag': '🇺🇸'},
+    'EUR': {'rate': 0.87, 'symbol': '€', 'flag': '🇪🇺'},
+    'JPY': {'rate': 0.134, 'symbol': '¥', 'flag': '🇯🇵'},
     'IDR': {'rate': 1.0, 'symbol': 'Rp', 'flag': '🇮🇩'},
   };
 
