@@ -76,6 +76,68 @@ class _ProfilScreenState extends State<ProfilScreen> {
     }
   }
 
+  Future<void> _deleteSaran(int index) async {
+    // Show confirmation dialog
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange[600]),
+              const SizedBox(width: 8),
+              const Text('Konfirmasi Hapus'),
+            ],
+          ),
+          content: const Text('Apakah Anda yakin ingin menghapus saran ini?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Batal',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Hapus'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete == true) {
+      setState(() {
+        saranList.removeAt(index);
+      });
+
+      // Save to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('saranList', jsonEncode(saranList));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Saran berhasil dihapus'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
   Future<void> _loadProfileImage() async {
     final prefs = await SharedPreferences.getInstance();
     final path = prefs.getString('profile_image');
@@ -480,6 +542,17 @@ class _ProfilScreenState extends State<ProfilScreen> {
                                       height: 1.3,
                                     ),
                                   ),
+                                ),
+                                trailing: IconButton(
+                                  onPressed: () => _deleteSaran(index),
+                                  icon: Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red[400],
+                                    size: 20,
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  constraints: const BoxConstraints(),
+                                  tooltip: 'Hapus saran',
                                 ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,

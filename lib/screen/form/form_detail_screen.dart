@@ -276,25 +276,169 @@ class _FormDetailScreenState extends State<FormDetailScreen>
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Image.network(
-          widget.form.buktiPengiriman!,
-          height: 200,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Center(
-                child: Icon(Icons.error, color: Colors.grey, size: 48),
-              ),
-            );
+        child: GestureDetector(
+          onTap: () {
+            // Tambahkan fungsi untuk melihat gambar dalam fullscreen
+            _showFullScreenImage(context, widget.form.buktiPengiriman!);
           },
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(
+              minHeight: 200,
+              maxHeight: 400, // Batas maksimal tinggi
+            ),
+            child: Image.network(
+              widget.form.buktiPengiriman!,
+              width: double.infinity,
+              fit: BoxFit
+                  .contain, // Ubah dari cover ke contain agar tidak terpotong
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.deepPurple),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Memuat gambar...',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Colors.grey[500],
+                        size: 48,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Gagal memuat gambar',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Tap untuk mencoba lagi',
+                        style: TextStyle(
+                          color: Colors.grey[500],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ),
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(20),
+          child: Stack(
+            children: [
+              Center(
+                child: InteractiveViewer(
+                  panEnabled: true,
+                  boundaryMargin: const EdgeInsets.all(20),
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[800],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Colors.white,
+                              size: 48,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Gagal memuat gambar',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 40,
+                right: 20,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

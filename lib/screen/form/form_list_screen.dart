@@ -120,7 +120,7 @@ class _FormListScreenState extends State<FormListScreen> {
           'Daftar Form Pengiriman',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
-        backgroundColor: Colors.blue[600],
+        backgroundColor: const Color.fromARGB(255, 15, 5, 91),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
