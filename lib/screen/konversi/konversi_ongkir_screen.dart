@@ -316,9 +316,9 @@ class _KonversiScreenState extends State<KonversiScreen> {
     if (currencyData == null) return const SizedBox.shrink();
 
     final formattedValue = _formatCurrency(value, currency);
-    final symbol = currencyData['symbol'] as String? ?? '';
-    final flag = currencyData['flag'] as String? ?? '🌍';
-    final name = currencyData['name'] as String? ?? currency;
+    final symbol = currencyData['symbol'] ?? '';
+    final flag = currencyData['flag'] ?? '🌍';
+    final name = currencyData['name'] ?? currency;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -465,8 +465,8 @@ class _KonversiScreenState extends State<KonversiScreen> {
           },
           items: _currencies.keys.map((currency) {
             final data = _currencies[currency]!;
-            final flag = data['flag'] as String? ?? '🌍';
-            final symbol = data['symbol'] as String? ?? '';
+            final flag = data['flag'] ?? '🌍';
+            final symbol = data['symbol'] ?? '';
 
             return DropdownMenuItem(
               value: currency,
@@ -780,10 +780,10 @@ class _KonversiScreenState extends State<KonversiScreen> {
                           _currencies[item['toCurrency'] ?? 'USD'];
 
                       final fromSymbol =
-                          fromCurrency?['symbol'] as String? ?? '';
-                      final toSymbol = toCurrency?['symbol'] as String? ?? '';
-                      final fromFlag = fromCurrency?['flag'] as String? ?? '🌍';
-                      final toFlag = toCurrency?['flag'] as String? ?? '🌍';
+                          fromCurrency?['symbol'] ?? '';
+                      final toSymbol = toCurrency?['symbol'] ?? '';
+                      final fromFlag = fromCurrency?['flag'] ?? '🌍';
+                      final toFlag = toCurrency?['flag'] ?? '🌍';
 
                       final fromFormatted = _formatCurrency(
                           item['fromValue'], item['fromCurrency'] ?? 'IDR');
