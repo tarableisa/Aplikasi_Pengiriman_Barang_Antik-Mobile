@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'dart:math' show sin, cos, sqrt, asin, pi;
 import '../../models/form_model.dart';
 import 'edit_form_screen.dart';
@@ -23,9 +25,14 @@ class _FormDetailScreenState extends State<FormDetailScreen>
   Set<Marker> markers = {};
   Set<Polyline> polylines = {};
   double? distanceKm;
+  String? duration; // Menambahkan durasi perjalanan
+  List<LatLng> routePoints = []; // Untuk menyimpan titik-titik rute
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+
+  // Ganti dengan API Key Google Maps Anda
+  static const String googleMapsApiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
 
   @override
   void initState() {
@@ -64,12 +71,8 @@ class _FormDetailScreenState extends State<FormDetailScreen>
         startLatLng = LatLng(pengirim[0].latitude, pengirim[0].longitude);
         endLatLng = LatLng(penerima[0].latitude, penerima[0].longitude);
 
-        distanceKm = _calculateDistance(
-          startLatLng!.latitude,
-          startLatLng!.longitude,
-          endLatLng!.latitude,
-          endLatLng!.longitude,
-        );
+        // Menggunakan Google Maps API untuk mendapatkan jarak dan rute akurat
+        await _getRouteFromGoogleMaps();
 
         setState(() {
           markers = {
@@ -77,29 +80,177 @@ class _FormDetailScreenState extends State<FormDetailScreen>
               markerId: MarkerId('pengirim'),
               position: startLatLng!,
               infoWindow: InfoWindow(title: 'Lokasi Pengirim'),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueGreen),
             ),
             Marker(
               markerId: MarkerId('penerima'),
               position: endLatLng!,
               infoWindow: InfoWindow(title: 'Lokasi Penerima'),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueRed),
             ),
           };
 
+          // Menggunakan rute dari Google Maps jika tersedia
           polylines = {
             Polyline(
               polylineId: PolylineId('route'),
-              points: [startLatLng!, endLatLng!],
+              points: routePoints.isNotEmpty
+                  ? routePoints
+                  : [startLatLng!, endLatLng!],
               color: Colors.deepPurple,
               width: 4,
+              patterns: [PatternItem.dash(20), PatternItem.gap(10)],
             ),
           };
         });
       }
     } catch (e) {
       print('Gagal mengambil lokasi: $e');
+      // Fallback ke perhitungan manual jika API gagal
+      _calculateManualDistance();
     }
   }
 
+  // Method untuk mendapatkan rute dari Google Maps Directions API
+  Future<void> _getRouteFromGoogleMaps() async {
+    if (startLatLng == null || endLatLng == null) return;
+
+    try {
+      // Menggunakan Directions API untuk mendapatkan rute detail
+      final String url = 'https://maps.googleapis.com/maps/api/directions/json?'
+          'origin=${startLatLng!.latitude},${startLatLng!.longitude}&'
+          'destination=${endLatLng!.latitude},${endLatLng!.longitude}&'
+          'key=$googleMapsApiKey';
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'OK' && data['routes'].isNotEmpty) {
+          final route = data['routes'][0];
+          final leg = route['legs'][0];
+
+          // Mendapatkan jarak dan durasi dari API
+          distanceKm = leg['distance']['value'] / 1000.0; // Konversi ke km
+          duration = leg['duration']['text'];
+
+          // Mendapatkan titik-titik polyline untuk rute yang akurat
+          final polylinePoints = route['overview_polyline']['points'];
+          routePoints = _decodePolyline(polylinePoints);
+
+          print('Jarak dari Google Maps: ${distanceKm!.toStringAsFixed(2)} km');
+          print('Durasi perjalanan: $duration');
+        } else {
+          throw Exception('No routes found');
+        }
+      } else {
+        throw Exception('Failed to fetch route: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error getting route from Google Maps: $e');
+      // Fallback ke Distance Matrix API
+      await _getDistanceFromDistanceMatrix();
+    }
+  }
+
+  // Method alternatif menggunakan Distance Matrix API (lebih sederhana)
+  Future<void> _getDistanceFromDistanceMatrix() async {
+    if (startLatLng == null || endLatLng == null) return;
+
+    try {
+      final String url =
+          'https://maps.googleapis.com/maps/api/distancematrix/json?'
+          'origins=${startLatLng!.latitude},${startLatLng!.longitude}&'
+          'destinations=${endLatLng!.latitude},${endLatLng!.longitude}&'
+          'key=$googleMapsApiKey';
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'OK' &&
+            data['rows'].isNotEmpty &&
+            data['rows'][0]['elements'].isNotEmpty) {
+          final element = data['rows'][0]['elements'][0];
+
+          if (element['status'] == 'OK') {
+            distanceKm =
+                element['distance']['value'] / 1000.0; // Konversi ke km
+            duration = element['duration']['text'];
+
+            print(
+                'Jarak dari Distance Matrix: ${distanceKm!.toStringAsFixed(2)} km');
+            print('Durasi perjalanan: $duration');
+          } else {
+            throw Exception('Distance calculation failed');
+          }
+        } else {
+          throw Exception('No distance data found');
+        }
+      } else {
+        throw Exception('Failed to fetch distance: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error getting distance from Distance Matrix: $e');
+      // Fallback ke perhitungan manual
+      _calculateManualDistance();
+    }
+  }
+
+  // Method fallback untuk perhitungan manual (Haversine)
+  void _calculateManualDistance() {
+    if (startLatLng != null && endLatLng != null) {
+      distanceKm = _calculateDistance(
+        startLatLng!.latitude,
+        startLatLng!.longitude,
+        endLatLng!.latitude,
+        endLatLng!.longitude,
+      );
+      print('Jarak manual (Haversine): ${distanceKm!.toStringAsFixed(2)} km');
+    }
+  }
+
+  // Fungsi untuk decode polyline dari Google Maps
+  List<LatLng> _decodePolyline(String encoded) {
+    List<LatLng> polylineCoordinates = [];
+    int index = 0;
+    int len = encoded.length;
+    int lat = 0;
+    int lng = 0;
+
+    while (index < len) {
+      int b;
+      int shift = 0;
+      int result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      polylineCoordinates.add(LatLng(lat / 1e5, lng / 1e5));
+    }
+
+    return polylineCoordinates;
+  }
+
+  // Method perhitungan manual (tetap disimpan sebagai fallback)
   double _calculateDistance(
       double lat1, double lon1, double lat2, double lon2) {
     const earthRadius = 6371;
@@ -239,6 +390,8 @@ class _FormDetailScreenState extends State<FormDetailScreen>
                   polylines: polylines,
                   onMapCreated: (controller) {
                     mapController = controller;
+                    // Auto fit bounds untuk menampilkan seluruh rute
+                    _fitBounds();
                   },
                 )
               : Container(
@@ -259,6 +412,35 @@ class _FormDetailScreenState extends State<FormDetailScreen>
     );
   }
 
+  // Method untuk menyesuaikan zoom agar seluruh rute terlihat
+  void _fitBounds() {
+    if (mapController != null && startLatLng != null && endLatLng != null) {
+      double minLat = startLatLng!.latitude < endLatLng!.latitude
+          ? startLatLng!.latitude
+          : endLatLng!.latitude;
+      double maxLat = startLatLng!.latitude > endLatLng!.latitude
+          ? startLatLng!.latitude
+          : endLatLng!.latitude;
+      double minLng = startLatLng!.longitude < endLatLng!.longitude
+          ? startLatLng!.longitude
+          : endLatLng!.longitude;
+      double maxLng = startLatLng!.longitude > endLatLng!.longitude
+          ? startLatLng!.longitude
+          : endLatLng!.longitude;
+
+      mapController!.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(
+            southwest: LatLng(minLat, minLng),
+            northeast: LatLng(maxLat, maxLng),
+          ),
+          100.0, // padding
+        ),
+      );
+    }
+  }
+
+  // Sisa kode widget lainnya tetap sama...
   Widget _buildProofImage() {
     if (widget.form.buktiPengiriman == null) return const SizedBox.shrink();
 
@@ -278,20 +460,18 @@ class _FormDetailScreenState extends State<FormDetailScreen>
         borderRadius: BorderRadius.circular(20),
         child: GestureDetector(
           onTap: () {
-            // Tambahkan fungsi untuk melihat gambar dalam fullscreen
             _showFullScreenImage(context, widget.form.buktiPengiriman!);
           },
           child: Container(
             width: double.infinity,
             constraints: const BoxConstraints(
               minHeight: 200,
-              maxHeight: 400, // Batas maksimal tinggi
+              maxHeight: 400,
             ),
             child: Image.network(
               widget.form.buktiPengiriman!,
               width: double.infinity,
-              fit: BoxFit
-                  .contain, // Ubah dari cover ke contain agar tidak terpotong
+              fit: BoxFit.contain,
               loadingBuilder: (context, child, loadingProgress) {
                 if (loadingProgress == null) return child;
                 return Container(
@@ -602,6 +782,14 @@ class _FormDetailScreenState extends State<FormDetailScreen>
                           value: '${distanceKm!.toStringAsFixed(2)} km',
                           icon: Icons.straighten,
                           color: Colors.indigo,
+                        ),
+                      // Menambahkan durasi jika tersedia
+                      if (duration != null)
+                        _buildInfoCard(
+                          title: 'Estimasi Waktu Tempuh',
+                          value: duration!,
+                          icon: Icons.timer,
+                          color: Colors.amber,
                         ),
                       if (widget.form.buktiPengiriman != null) ...[
                         _buildSectionHeader(

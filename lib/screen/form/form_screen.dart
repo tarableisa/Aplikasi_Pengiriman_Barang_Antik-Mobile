@@ -340,7 +340,7 @@ class _FormScreenState extends State<FormScreen> {
         style: TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 16,
-          color: const Color.fromARGB(255, 33, 8, 77),
+          color: const Color.fromARGB(255, 255, 255, 255),
         ),
       ),
     );
