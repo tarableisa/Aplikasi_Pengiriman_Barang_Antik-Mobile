@@ -7,7 +7,7 @@ import 'package:proyekakhir_173/screen/auth/login_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Load environment variables dari file .env
+  // Load environment variables dari file .env
   await dotenv.load(fileName: ".env");
 
   // Inisialisasi API dan notifikasi

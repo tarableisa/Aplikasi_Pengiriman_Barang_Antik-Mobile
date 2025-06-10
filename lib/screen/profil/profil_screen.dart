@@ -77,7 +77,6 @@ class _ProfilScreenState extends State<ProfilScreen> {
   }
 
   Future<void> _deleteSaran(int index) async {
-    // Show confirmation dialog
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -122,7 +121,6 @@ class _ProfilScreenState extends State<ProfilScreen> {
         saranList.removeAt(index);
       });
 
-      // Save to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('saranList', jsonEncode(saranList));
 

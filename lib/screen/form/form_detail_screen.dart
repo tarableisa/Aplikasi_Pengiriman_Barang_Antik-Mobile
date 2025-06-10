@@ -31,7 +31,6 @@ class _FormDetailScreenState extends State<FormDetailScreen>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  // Ganti dengan API Key Google Maps Anda
   static const String googleMapsApiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
 
   @override
@@ -60,8 +59,10 @@ class _FormDetailScreenState extends State<FormDetailScreen>
     super.dispose();
   }
 
+// Fungsi utama untuk mengambil data lokasi dari alamat dan menggambar rute
   Future<void> _loadMapData() async {
     try {
+      // Ubah alamat menjadi koordinat
       List<Location> pengirim =
           await locationFromAddress(widget.form.lokasiPengirim);
       List<Location> penerima =
@@ -71,7 +72,7 @@ class _FormDetailScreenState extends State<FormDetailScreen>
         startLatLng = LatLng(pengirim[0].latitude, pengirim[0].longitude);
         endLatLng = LatLng(penerima[0].latitude, penerima[0].longitude);
 
-        // Menggunakan Google Maps API untuk mendapatkan jarak dan rute akurat
+        // Ambil rute dan jarak dari Google Maps API
         await _getRouteFromGoogleMaps();
 
         setState(() {
@@ -92,7 +93,7 @@ class _FormDetailScreenState extends State<FormDetailScreen>
             ),
           };
 
-          // Menggunakan rute dari Google Maps jika tersedia
+          // Gambar garis rute dari Google Maps
           polylines = {
             Polyline(
               polylineId: PolylineId('route'),
@@ -108,17 +109,15 @@ class _FormDetailScreenState extends State<FormDetailScreen>
       }
     } catch (e) {
       print('Gagal mengambil lokasi: $e');
-      // Fallback ke perhitungan manual jika API gagal
       _calculateManualDistance();
     }
   }
 
-  // Method untuk mendapatkan rute dari Google Maps Directions API
+  // Ambil rute dari Google Directions API
   Future<void> _getRouteFromGoogleMaps() async {
     if (startLatLng == null || endLatLng == null) return;
 
     try {
-      // Menggunakan Directions API untuk mendapatkan rute detail
       final String url = 'https://maps.googleapis.com/maps/api/directions/json?'
           'origin=${startLatLng!.latitude},${startLatLng!.longitude}&'
           'destination=${endLatLng!.latitude},${endLatLng!.longitude}&'
@@ -134,7 +133,7 @@ class _FormDetailScreenState extends State<FormDetailScreen>
           final leg = route['legs'][0];
 
           // Mendapatkan jarak dan durasi dari API
-          distanceKm = leg['distance']['value'] / 1000.0; // Konversi ke km
+          distanceKm = leg['distance']['value'] / 1000.0;
           duration = leg['duration']['text'];
 
           // Mendapatkan titik-titik polyline untuk rute yang akurat
@@ -151,7 +150,6 @@ class _FormDetailScreenState extends State<FormDetailScreen>
       }
     } catch (e) {
       print('Error getting route from Google Maps: $e');
-      // Fallback ke Distance Matrix API
       await _getDistanceFromDistanceMatrix();
     }
   }
@@ -196,7 +194,6 @@ class _FormDetailScreenState extends State<FormDetailScreen>
       }
     } catch (e) {
       print('Error getting distance from Distance Matrix: $e');
-      // Fallback ke perhitungan manual
       _calculateManualDistance();
     }
   }
@@ -250,7 +247,7 @@ class _FormDetailScreenState extends State<FormDetailScreen>
     return polylineCoordinates;
   }
 
-  // Method perhitungan manual (tetap disimpan sebagai fallback)
+  // Fungsi bantu untuk hitung jarak manual dengan rumus Haversine
   double _calculateDistance(
       double lat1, double lon1, double lat2, double lon2) {
     const earthRadius = 6371;

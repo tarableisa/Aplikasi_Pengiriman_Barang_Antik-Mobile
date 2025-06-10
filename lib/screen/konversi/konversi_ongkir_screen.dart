@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart'; 
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -17,7 +17,7 @@ class _KonversiScreenState extends State<KonversiScreen> {
   final _beratController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  // Data mata uang dengan info display
+  // Data mata uang 
   final _currencies = {
     'IDR': {'symbol': 'Rp', 'flag': '🇮🇩', 'name': 'Indonesian Rupiah'},
     'USD': {'symbol': '\$', 'flag': '🇺🇸', 'name': 'US Dollar'},
@@ -47,11 +47,13 @@ class _KonversiScreenState extends State<KonversiScreen> {
     _loadHistori();
     _loadExchangeRates();
 
+// Jika berat dikirim dari screen lain, isi otomatis
     if (widget.berat != null && widget.berat! > 0) {
       _beratController.text = widget.berat!.toStringAsFixed(2);
     }
   }
 
+// Fungsi ambil data kurs dari API ExchangeRate
   Future<void> _loadExchangeRates() async {
     setState(() {
       _isLoadingRates = true;
@@ -79,7 +81,7 @@ class _KonversiScreenState extends State<KonversiScreen> {
 
           await _saveExchangeRatesCache();
 
-          // Auto calculate jika ada input berat
+
           if (_beratController.text.isNotEmpty) {
             _konversi();
           }
@@ -99,7 +101,6 @@ class _KonversiScreenState extends State<KonversiScreen> {
         _isLoadingRates = false;
       });
 
-      // Auto calculate jika ada input berat dan rates tersedia
       if (_beratController.text.isNotEmpty && _exchangeRates.isNotEmpty) {
         _konversi();
       }
@@ -119,6 +120,7 @@ class _KonversiScreenState extends State<KonversiScreen> {
     }
   }
 
+// Load kurs dari cache jika gagal ambil dari API
   Future<void> _loadExchangeRatesFromCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -239,11 +241,12 @@ class _KonversiScreenState extends State<KonversiScreen> {
     final fromRate = _exchangeRates[from] ?? 1.0;
     final toRate = _exchangeRates[to] ?? 1.0;
 
-    // Convert to USD first, then to target currency
+    
     final usdAmount = amount / fromRate;
     return usdAmount * toRate;
   }
 
+// Proses konversi berdasarkan berat dan kurs
   void _konversi() {
     if (!_formKey.currentState!.validate()) return;
     if (_exchangeRates.isEmpty) return;

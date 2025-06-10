@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart'; // Import geolocator untuk mengambil lokasi pengguna
+import 'package:geocoding/geocoding.dart'; // Import geocoding untuk mengubah koordinat menjadi alamat lengkap
 import '../../services/api_service.dart';
 import '../form/form_list_screen.dart';
 import '../konversi/konversi_ongkir_screen.dart';
@@ -28,6 +28,7 @@ class _FormScreenState extends State<FormScreen> {
 
   File? selectedImage;
 
+  // Fungsi untuk mengirim data form ke server
   Future<void> submitForm() async {
     if (_formKey.currentState!.validate()) {
       bool success = await ApiService.kirimFormLengkap(
@@ -56,6 +57,7 @@ class _FormScreenState extends State<FormScreen> {
     }
   }
 
+// Fungsi untuk memilih gambar dari galeri
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery);
@@ -66,6 +68,7 @@ class _FormScreenState extends State<FormScreen> {
     }
   }
 
+  // Fungsi untuk mendeteksi lokasi pengguna dan mengisi otomatis lokasiPengirim
   Future<void> _deteksiLokasiSaya() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
@@ -83,6 +86,7 @@ class _FormScreenState extends State<FormScreen> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      // Konversi koordinat menjadi alamat lengkap
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
@@ -129,10 +133,24 @@ class _FormScreenState extends State<FormScreen> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide:
+            BorderSide(color: Color.fromARGB(255, 8, 36, 121), width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+            color: Color.fromARGB(255, 8, 36, 121).withOpacity(0.3), width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide:
+            BorderSide(color: Color.fromARGB(255, 8, 36, 121), width: 2),
+      ),
       filled: true,
       fillColor: Colors.white,
-      labelStyle: TextStyle(color: const Color.fromARGB(255, 6, 0, 63)),
+      labelStyle: TextStyle(color: Color.fromARGB(255, 8, 36, 121)),
       contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }
@@ -146,6 +164,7 @@ class _FormScreenState extends State<FormScreen> {
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Color.fromARGB(255, 8, 36, 121),
         elevation: 0,
+        iconTheme: IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -155,8 +174,10 @@ class _FormScreenState extends State<FormScreen> {
             children: [
               _buildSectionTitle('Informasi Pengirim'),
               TextFormField(
-                  controller: namaPengirim,
-                  decoration: _inputDecoration('Nama Pengirim')),
+                controller: namaPengirim,
+                decoration: _inputDecoration('Nama Pengirim'),
+                validator: (val) => val!.isEmpty ? 'Wajib diisi' : null,
+              ),
               SizedBox(height: 12),
               TextFormField(
                 controller: lokasiPengirim,
@@ -183,6 +204,7 @@ class _FormScreenState extends State<FormScreen> {
                       style: TextStyle(color: Color.fromARGB(255, 8, 36, 121))),
                 ),
               ),
+              SizedBox(height: 12),
               TextFormField(
                 controller: waktuPengiriman,
                 readOnly: true,
@@ -237,12 +259,15 @@ class _FormScreenState extends State<FormScreen> {
               TextFormField(
                 controller: deskripsi,
                 decoration: _inputDecoration('Deskripsi Barang'),
+                maxLines: 3,
               ),
               SizedBox(height: 24),
               _buildSectionTitle('Informasi Penerima'),
               TextFormField(
-                  controller: namaPenerima,
-                  decoration: _inputDecoration('Nama Penerima')),
+                controller: namaPenerima,
+                decoration: _inputDecoration('Nama Penerima'),
+                validator: (val) => val!.isEmpty ? 'Wajib diisi' : null,
+              ),
               SizedBox(height: 12),
               TextFormField(
                 controller: lokasiPenerima,
@@ -272,58 +297,90 @@ class _FormScreenState extends State<FormScreen> {
                 },
               ),
               SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: pickImage,
-                icon: Icon(Icons.upload_file),
-                label: Text('Upload Bukti Pengiriman',
-                    style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color.fromARGB(255, 8, 36, 121),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+              Container(
+                width: double.infinity,
+                margin: EdgeInsets.only(bottom: 12),
+                child: ElevatedButton.icon(
+                  onPressed: pickImage,
+                  icon: Icon(Icons.upload_file, color: Colors.white),
+                  label: Text('Upload Bukti Pengiriman',
+                      style: TextStyle(color: Colors.white, fontSize: 16)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color.fromARGB(255, 8, 36, 121),
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 2,
+                  ),
                 ),
               ),
               if (selectedImage != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Gambar: ${selectedImage!.path.split('/').last}',
-                    style: TextStyle(color: Colors.black54),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  margin: EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'File terpilih: ${selectedImage!.path.split('/').last}',
+                          style:
+                              TextStyle(color: Colors.green[700], fontSize: 14),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              SizedBox(height: 24),
+              SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      icon: Icon(Icons.attach_money),
+                      icon: Icon(Icons.attach_money,
+                          color: Color.fromARGB(255, 8, 36, 121)),
                       onPressed: _bukaKonversi,
-                      label: Text("Cek Ongkir"),
+                      label: Text("Cek Ongkir",
+                          style: TextStyle(
+                              color: Color.fromARGB(255, 8, 36, 121),
+                              fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color.fromARGB(255, 255, 204, 127),
+                        backgroundColor: Color.fromARGB(255, 255, 204, 127),
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
+                        elevation: 2,
                       ),
                     ),
                   ),
                   SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton.icon(
-                      icon: Icon(Icons.send),
+                      icon: Icon(Icons.send, color: Colors.white),
                       onPressed: submitForm,
-                      label: Text("Kirim Form"),
+                      label: Text("Kirim Form",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color.fromARGB(255, 255, 204, 127),
+                        backgroundColor: Color.fromARGB(255, 8, 36, 121),
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
+                        elevation: 2,
                       ),
                     ),
                   ),
                 ],
               ),
+              SizedBox(height: 20),
             ],
           ),
         ),
@@ -333,16 +390,58 @@ class _FormScreenState extends State<FormScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Container(
-      alignment: Alignment.centerLeft,
-      margin: EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
-          color: const Color.fromARGB(255, 255, 255, 255),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: EdgeInsets.only(bottom: 16, top: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color.fromARGB(255, 8, 36, 121),
+            Color.fromARGB(255, 26, 134, 158),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Color.fromARGB(255, 8, 36, 121).withOpacity(0.3),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _getSectionIcon(title),
+            color: Colors.white,
+            size: 20,
+          ),
+          SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  IconData _getSectionIcon(String title) {
+    switch (title) {
+      case 'Informasi Pengirim':
+        return Icons.person_outline;
+      case 'Informasi Paket':
+        return Icons.inventory_2_outlined;
+      case 'Informasi Penerima':
+        return Icons.person_pin_circle_outlined;
+      default:
+        return Icons.info_outline;
+    }
   }
 }

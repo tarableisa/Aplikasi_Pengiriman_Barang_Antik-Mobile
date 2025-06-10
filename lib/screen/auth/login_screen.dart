@@ -16,11 +16,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
+  // Fungsi login yang dipanggil saat menekan tombol login
   Future<void> login() async {
     setState(() {
       _isLoading = true;
     });
 
+// Panggil fungsi login di ApiService, kirim username dan password
     bool success = await ApiService.login(
       _usernameController.text,
       _passwordController.text,

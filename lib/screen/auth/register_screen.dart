@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import 'login_screen.dart';
 
+//StatefulWidget karena ada perubahan state 
 class RegisterScreen extends StatefulWidget {
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
@@ -12,6 +13,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  // Fungsi async untuk proses registrasi
   Future<void> register() async {
     bool success = await ApiService.register(
       _usernameController.text,

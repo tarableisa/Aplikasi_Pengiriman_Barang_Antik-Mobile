@@ -18,6 +18,7 @@ class _KonversiWaktuScreenState extends State<KonversiWaktuScreen> {
   String? hasilKonversi;
   List<Map<String, String>> riwayat = [];
 
+// Data zona waktu lengkap dengan offset
   final Map<String, Map<String, dynamic>> zonaWaktu = {
     'WIB': {
       'offset': 7,
@@ -94,6 +95,7 @@ class _KonversiWaktuScreenState extends State<KonversiWaktuScreen> {
     });
   }
 
+// Fungsi untuk memilih tanggal dan waktu
   void _pickDateTime() async {
     final pickedDate = await showDatePicker(
       context: context,
@@ -138,11 +140,12 @@ class _KonversiWaktuScreenState extends State<KonversiWaktuScreen> {
             pickedTime.minute,
           );
         });
-        _konversiWaktu(); // Auto convert setelah pilih waktu
+        _konversiWaktu();
       }
     }
   }
 
+  // Proses konversi waktu ke zona yang dipilih
   void _konversiWaktu() {
     if (selectedDateTime == null || zonaTujuan == null) return;
 

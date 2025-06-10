@@ -23,13 +23,14 @@ class _HomeScreenState extends State<HomeScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   int _currentIndex = 0;
 
-  // Ganti ShakeDetector dengan StreamSubscription untuk accelerometer
+  //  accelerometer
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
   double _shakeThreshold = 12.0; // Threshold untuk mendeteksi shake
   DateTime? _lastShakeTime; // Untuk cooldown
 
+// Daftar screen untuk bottom navigation
   final List<Widget> _screens = [
-    Container(), // Tab Home akan dibangun manual
+    Container(), 
     const KonversiScreen(),
     const KonversiWaktuScreen(),
     const ProfilScreen(),
@@ -42,26 +43,21 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    // Tambahkan observer untuk lifecycle
     WidgetsBinding.instance.addObserver(this);
     fetchForms();
-
     // Inisialisasi accelerometer listener
     _initAccelerometer();
   }
 
   @override
   void dispose() {
-    // Hapus observer saat dispose
     WidgetsBinding.instance.removeObserver(this);
-
-    // Cancel accelerometer subscription
+    // Hentikan langganan accelerometer
     _accelerometerSubscription?.cancel();
 
     super.dispose();
   }
 
-  // Method untuk inisialisasi accelerometer
   void _initAccelerometer() {
     _accelerometerSubscription =
         accelerometerEvents.listen((AccelerometerEvent event) {
@@ -74,25 +70,21 @@ class _HomeScreenState extends State<HomeScreen>
 
   // Method untuk mendeteksi shake gesture
   void _detectShake(AccelerometerEvent event) {
-    // Hitung total acceleration dari ketiga axis
     double acceleration =
         sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
 
-    // Jika acceleration melebihi threshold
     if (acceleration > _shakeThreshold) {
       DateTime now = DateTime.now();
 
-      // Cooldown 2 detik untuk mencegah multiple trigger
       if (_lastShakeTime == null ||
           now.difference(_lastShakeTime!) > Duration(seconds: 2)) {
         _lastShakeTime = now;
-        print('Shake detected! Acceleration: $acceleration'); // Debug
-        _showLogoutDialog();
+        print('Shake detected! Acceleration: $acceleration'); 
       }
     }
   }
 
-  // Method untuk menampilkan dialog logout
+  // Tampilkan dialog konfirmasi logout
   void _showLogoutDialog() {
     showDialog(
       context: context,
@@ -178,6 +170,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+// Ambil data form dari API
   Future<void> fetchForms() async {
     if (!mounted) return;
 

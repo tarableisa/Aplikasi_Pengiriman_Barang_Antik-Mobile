@@ -9,8 +9,8 @@ class FormListScreen extends StatefulWidget {
 }
 
 class _FormListScreenState extends State<FormListScreen> {
-  List<FormModel> forms = [];
-  List<FormModel> filteredForms = [];
+  List<FormModel> forms = []; // Menyimpan semua data form
+  List<FormModel> filteredForms = [];// Menyimpan hasil pencarian
   bool isLoading = true;
   bool isError = false;
   TextEditingController searchController = TextEditingController();
@@ -67,11 +67,9 @@ class _FormListScreenState extends State<FormListScreen> {
     }
   }
 
+  // Format waktu ke bentuk string: DD/MM/YYYY HH:MM
   String _formatDateTime(DateTime dateTime) {
-    // Convert UTC to local timezone
     DateTime localDateTime = dateTime.isUtc ? dateTime.toLocal() : dateTime;
-
-    // Format with proper padding
     String day = localDateTime.day.toString().padLeft(2, '0');
     String month = localDateTime.month.toString().padLeft(2, '0');
     String year = localDateTime.year.toString();
@@ -81,9 +79,8 @@ class _FormListScreenState extends State<FormListScreen> {
     return '$day/$month/$year $hour:$minute';
   }
 
-  // Alternative method with more detailed formatting
+ // Format waktu ke bentuk lokal
   String _formatDateTimeDetailed(DateTime dateTime) {
-    // Convert UTC to local timezone
     DateTime localDateTime = dateTime.isUtc ? dateTime.toLocal() : dateTime;
 
     List<String> monthNames = [
